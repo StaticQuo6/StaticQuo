@@ -11,17 +11,21 @@ interface VaultRecord {
 interface VaultStore {
   records: VaultRecord[]
   isUnlocked: boolean
+  vaultPin: string | null
   addRecord: (r: VaultRecord) => void
   removeRecord: (id: string) => void
-  unlock: () => void
+  unlock: (pin: string) => void
   lock: () => void
 }
 
 export const useVaultStore = create<VaultStore>()((set) => ({
   records: [],
   isUnlocked: false,
-  addRecord: (r) => set((s) => ({ records: [...s.records, r] })),
-  removeRecord: (id) => set((s) => ({ records: s.records.filter((r) => r.id !== id) })),
-  unlock: () => set({ isUnlocked: true }),
-  lock: () => set({ isUnlocked: false }),
+  vaultPin: null,
+  addRecord: (r) =>
+    set((s) => ({ records: [...s.records, r] })),
+  removeRecord: (id) =>
+    set((s) => ({ records: s.records.filter((r) => r.id !== id) })),
+  unlock: (pin) => set({ isUnlocked: true, vaultPin: pin }),
+  lock: () => set({ isUnlocked: false, vaultPin: null }),
 }))

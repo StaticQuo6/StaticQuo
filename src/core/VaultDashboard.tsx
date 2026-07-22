@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
 import { getVaultDb } from '../shared/db/DatabaseService'
-import { decrypt } from '../shared/crypto/CryptoService'
+import { encrypt, decrypt } from '../shared/crypto/CryptoService'
 import { deriveKey } from '../shared/crypto/KeyDerivation'
 import { useVaultStore } from './useVaultStore'
 import { ShardEngine } from './ShardEngine'
 
-interface VaultRecord {
+interface VaultRecordRow {
   id: string
   type: string
   encrypted_data: string
@@ -15,6 +15,16 @@ interface VaultRecord {
   updated_at: number
   shard_status: string
   tags: string
+}
+
+function rowToRecord(r: VaultRecordRow) {
+  return {
+    id: r.id,
+    type: r.type as 'incident' | 'media' | 'note',
+    encryptedData: r.encrypted_data,
+    createdAt: r.created_at,
+    shardStatus: r.shard_status as 'local' | 'distributed',
+  }
 }
 
 export function VaultDashboard() {
@@ -33,42 +43,36 @@ export function VaultDashboard() {
     const db = getVaultDb()
     if (!db) return
     try {
-      const result = await db.query('SELECT * FROM vault_records ORDER BY created_at DESC')
+      const result = await db.query(
+        'SELECT * FROM vault_records ORDER BY created_at DESC'
+      )
       if (result.values) {
-        const records = result.values as unknown as VaultRecord[]
-        const state = useVaultStore.getState()
-        records.forEach((r) => {
-          state.addRecord({
-            id: r.id,
-            type: r.type as 'incident' | 'media' | 'note',
-            encryptedData: r.encrypted_data,
-            createdAt: r.created_at,
-            shardStatus: r.shard_status as 'local' | 'distributed',
-          })
-        })
+        const rows = result.values as unknown as VaultRecordRow[]
+        rows.forEach((r) => addRecord(rowToRecord(r)))
       }
     } catch (e) {
       console.error('Failed to load vault records:', e)
     }
   }
 
-  const handleDecrypt = async (record: { id: string; encryptedData: string }) => {
+  const handleDecrypt = async (record: { id: string }) => {
     if (!vaultPin) return
     try {
       const db = getVaultDb()
       if (!db) return
       const result = await db.query(
-        'SELECT iv, auth_tag FROM vault_records WHERE id = ?',
+        'SELECT encrypted_data, iv, auth_tag FROM vault_records WHERE id = ?',
         [record.id]
       )
       if (!result.values || result.values.length === 0) return
 
+      const row = result.values[0] as VaultRecordRow
       const { key } = await deriveKey(vaultPin)
       const plaintext = await decrypt(
         {
-          iv: (result.values[0] as any).iv,
-          ciphertext: record.encryptedData,
-          authTag: (result.values[0] as any).auth_tag,
+          iv: row.iv,
+          ciphertext: row.encrypted_data,
+          authTag: row.auth_tag,
         },
         key
       )
@@ -90,7 +94,7 @@ export function VaultDashboard() {
       const id = crypto.randomUUID()
       const now = Date.now()
 
-      await db.execute(
+      await db.run(
         `INSERT INTO vault_records (id, type, encrypted_data, iv, auth_tag, created_at, updated_at, shard_status)
          VALUES (?, ?, ?, ?, ?, ?, ?, 'local')`,
         [id, newType, ciphertext, iv, authTag, now, now]
@@ -116,7 +120,7 @@ export function VaultDashboard() {
   const handleDelete = async (id: string) => {
     const db = getVaultDb()
     if (!db) return
-    await db.execute('DELETE FROM vault_records WHERE id = ?', [id])
+    await db.run('DELETE FROM vault_records WHERE id = ?', [id])
     removeRecord(id)
     setDecrypted((prev) => {
       const { [id]: _, ...rest } = prev

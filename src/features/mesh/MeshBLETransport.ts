@@ -1,0 +1,87 @@
+import { useMeshStore } from './useMeshStore'
+import { RelayEngine } from './RelayEngine'
+import { getBlePeripheral } from '../../shared/ble/BlePeripheralPlugin'
+
+export class MeshBLETransport {
+  private engine: RelayEngine
+  private scanInterval: ReturnType<typeof setInterval> | null = null
+  private isRunning = false
+
+  constructor(engine: RelayEngine) {
+    this.engine = engine
+  }
+
+  async start(deviceFingerprint: string): Promise<void> {
+    this.isRunning = true
+
+    const ble = getBlePeripheral()
+    if (ble) {
+      try {
+        await ble.openGattServer()
+        await ble.startAdvertising({ localName: `SQ:${deviceFingerprint.slice(0, 8)}` })
+      } catch {
+        // Peripheral mode not available on this device
+      }
+    }
+
+    this.scanInterval = setInterval(() => this.scanForPeers(), 10_000)
+    this.engine.start()
+  }
+
+  async stop(): Promise<void> {
+    this.isRunning = false
+
+    if (this.scanInterval) clearInterval(this.scanInterval)
+
+    const ble = getBlePeripheral()
+    if (ble) {
+      try {
+        await ble.stopAdvertising()
+        await ble.closeGattServer()
+      } catch {
+        // ignore
+      }
+    }
+
+    this.engine.stop()
+  }
+
+  private async scanForPeers(): Promise<void> {
+    if (!this.isRunning) return
+
+    const store = useMeshStore.getState()
+    const now = Date.now()
+
+    Object.keys(store.peers).forEach((id) => {
+      if (now - store.peers[id].lastSeen > 300_000) {
+        store.removePeer(id)
+      }
+    })
+
+    const relayMsg = this.engine.getNextForRelay()
+    if (relayMsg) {
+      const peerIds = Object.keys(useMeshStore.getState().peers)
+      if (peerIds.length > 0) {
+        const targetPeer = peerIds[Math.floor(Math.random() * peerIds.length)]
+        const peers = useMeshStore.getState().peers
+        const peer = peers[targetPeer]
+        if (peer) {
+          useMeshStore.setState({
+            peers: {
+              ...peers,
+              [targetPeer]: { ...peer, packetsRelayed: peer.packetsRelayed + 1 },
+            },
+          })
+        }
+      }
+    }
+  }
+
+  simulatePeerDiscovery(peerId: string, name: string, rssi: number): void {
+    useMeshStore.getState().addPeer(peerId, name, rssi)
+  }
+}
+
+export const meshTransport = new MeshBLETransport(
+  new RelayEngine()
+)

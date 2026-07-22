@@ -1,3 +1,5 @@
+import { decrypt } from './CryptoService'
+
 const PBKDF2_ITERATIONS = 100_000
 const SALT_LENGTH = 16
 const KEY_LENGTH = 256
@@ -18,7 +20,10 @@ export interface DerivedKey {
   salt: string
 }
 
-export async function deriveKey(pin: string, existingSalt?: string): Promise<DerivedKey> {
+export async function deriveKey(
+  pin: string,
+  existingSalt?: string
+): Promise<DerivedKey> {
   const salt = existingSalt
     ? new Uint8Array(base64ToBuf(existingSalt))
     : crypto.getRandomValues(new Uint8Array(SALT_LENGTH))
@@ -50,19 +55,22 @@ export async function deriveKey(pin: string, existingSalt?: string): Promise<Der
 export async function verifyPinAgainstStored(
   pin: string,
   storedSalt: string,
-  storedTestCiphertext: string
+  storedTestCiphertext: string,
+  storedIv: string,
+  storedAuthTag: string
 ): Promise<boolean> {
   try {
     const { key } = await deriveKey(pin, storedSalt)
-    const testPlaintext = 'staticquo-vault-ok'
     const decrypted = await decrypt(
-      { iv: 'AAAAAAAAAAAAAA==', ciphertext: storedTestCiphertext, authTag: '' },
+      {
+        iv: storedIv,
+        ciphertext: storedTestCiphertext,
+        authTag: storedAuthTag,
+      },
       key
     )
-    return decrypted === testPlaintext
+    return decrypted === 'staticquo-vault-ok'
   } catch {
     return false
   }
 }
-
-import { decrypt } from './CryptoService'

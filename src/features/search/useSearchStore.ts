@@ -1,13 +1,21 @@
 import { create } from 'zustand'
 
+interface SearchResult {
+  heading: string
+  body: string
+  category: string
+}
+
 interface SearchStore {
   query: string
-  results: { heading: string; body: string; category: string }[]
+  results: SearchResult[]
   indexReady: boolean
   setQuery: (q: string) => void
-  setResults: (r: { heading: string; body: string; category: string }[]) => void
+  setResults: (r: SearchResult[]) => void
   setIndexReady: (ready: boolean) => void
 }
+
+export type { SearchResult }
 
 export const useSearchStore = create<SearchStore>()((set) => ({
   query: '',

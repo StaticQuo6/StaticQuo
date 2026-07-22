@@ -1,20 +1,20 @@
 import { useState, useEffect } from 'react'
-import { initVaultDb, getVaultDb } from '../shared/db/DatabaseService'
-import { deriveKey } from '../shared/crypto/KeyDerivation'
+import { initVaultDb } from '../shared/db/DatabaseService'
+import { deriveKey, verifyPinAgainstStored } from '../shared/crypto/KeyDerivation'
 import { encrypt } from '../shared/crypto/CryptoService'
 import { useVaultStore } from './useVaultStore'
 
 export function VaultGate({ children }: { children: React.ReactNode }) {
-  const { isUnlocked, unlock, vaultPin } = useVaultStore()
+  const { isUnlocked, unlock } = useVaultStore()
   const [input, setInput] = useState('')
   const [error, setError] = useState(false)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    if (isUnlocked && vaultPin) {
-      initVaultDb(vaultPin).catch(() => {})
+    if (isUnlocked) {
+      initVaultDb().catch(() => {})
     }
-  }, [isUnlocked, vaultPin])
+  }, [isUnlocked])
 
   const handleDigit = (d: string) => {
     if (input.length < 8) setInput((p) => p + d)
@@ -26,37 +26,55 @@ export function VaultGate({ children }: { children: React.ReactNode }) {
     setError(false)
 
     try {
-      const db = await initVaultDb(input)
-      const result = await db.query('SELECT value FROM vault_meta WHERE key = ?', ['vault_key_salt'])
+      const db = await initVaultDb()
 
-      if (result.values && result.values.length > 0) {
-        const salt = result.values[0].value as string
-        const testResult = await db.query(
-          'SELECT value FROM vault_meta WHERE key = ?',
-          ['vault_test_ciphertext']
+      const metaResult = await db.query(
+        "SELECT value FROM vault_meta WHERE key = 'vault_key_salt'"
+      )
+
+      if (metaResult.values && metaResult.values.length > 0) {
+        const salt = metaResult.values[0].value as string
+
+        const keysResult = await db.query(
+          "SELECT value FROM vault_meta WHERE key IN ('vault_test_iv', 'vault_test_ciphertext', 'vault_test_auth_tag')"
         )
 
-        if (testResult.values && testResult.values.length > 0) {
-          const { key } = await deriveKey(input, salt)
-          const ct = testResult.values[0].value as string
-          await encrypt('staticquo-vault-ok', key)
-          unlock(input)
-          setInput('')
-        } else {
-          setError(true)
-          setInput('')
+        if (
+          keysResult.values &&
+          keysResult.values.length === 3
+        ) {
+          const iv = keysResult.values[0].value as string
+          const ct = keysResult.values[1].value as string
+          const tag = keysResult.values[2].value as string
+
+          const valid = await verifyPinAgainstStored(input, salt, ct, iv, tag)
+          if (valid) {
+            unlock(input)
+            setInput('')
+          } else {
+            setError(true)
+            setInput('')
+          }
         }
       } else {
         const { key, salt } = await deriveKey(input)
-        const ciphertext = await encrypt('staticquo-vault-ok', key)
-        await db.execute('INSERT INTO vault_meta (key, value) VALUES (?, ?)', [
-          'vault_key_salt',
-          salt,
-        ])
-        await db.execute('INSERT INTO vault_meta (key, value) VALUES (?, ?)', [
-          'vault_test_ciphertext',
-          ciphertext.ciphertext,
-        ])
+        const encrypted = await encrypt('staticquo-vault-ok', key)
+        await db.run(
+          "INSERT OR REPLACE INTO vault_meta (key, value) VALUES ('vault_key_salt', ?)",
+          [salt]
+        )
+        await db.run(
+          "INSERT OR REPLACE INTO vault_meta (key, value) VALUES ('vault_test_iv', ?)",
+          [encrypted.iv]
+        )
+        await db.run(
+          "INSERT OR REPLACE INTO vault_meta (key, value) VALUES ('vault_test_ciphertext', ?)",
+          [encrypted.ciphertext]
+        )
+        await db.run(
+          "INSERT OR REPLACE INTO vault_meta (key, value) VALUES ('vault_test_auth_tag', ?)",
+          [encrypted.authTag]
+        )
         unlock(input)
         setInput('')
       }
@@ -76,7 +94,9 @@ export function VaultGate({ children }: { children: React.ReactNode }) {
         <div className="text-4xl mb-4">🔐</div>
         <h1 className="text-2xl font-bold text-white mb-2">Detention Vault</h1>
         <p className="text-sm text-gray-400 mb-8">
-          {loading ? 'Decrypting...' : 'Enter your vault PIN to access encrypted records'}
+          {loading
+            ? 'Decrypting...'
+            : 'Enter your vault PIN to access encrypted records'}
         </p>
 
         <div className="flex justify-center gap-3 mb-6">
@@ -90,9 +110,7 @@ export function VaultGate({ children }: { children: React.ReactNode }) {
           ))}
         </div>
 
-        {error && (
-          <p className="text-red-400 text-xs mb-4">Incorrect vault PIN</p>
-        )}
+        {error && <p className="text-red-400 text-xs mb-4">Incorrect vault PIN</p>}
 
         <div className="grid grid-cols-3 gap-3">
           {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
