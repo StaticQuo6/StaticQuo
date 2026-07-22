@@ -10,9 +10,10 @@ export function SearchView() {
     ftsIndexer.init()
   }, [])
 
-  const handleSearch = async () => {
-    setQuery(input)
-    await ftsIndexer.search(input)
+  const handleSearch = async (value?: string) => {
+    const term = value ?? input
+    setQuery(term)
+    await ftsIndexer.search(term)
   }
 
   const categoryEmojis: Record<string, string> = {
@@ -24,24 +25,18 @@ export function SearchView() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">
-      <header className="sticky top-0 z-10 bg-gray-900/80 backdrop-blur-sm border-b border-gray-800 px-4 py-3">
-        <h1 className="text-lg font-bold flex items-center gap-2">
-          <span>📖</span> Protocols & Rights
-        </h1>
-      </header>
-
-      <main className="p-4 max-w-lg mx-auto space-y-4">
+      <main className="p-4 max-w-lg mx-auto space-y-4 pt-16">
         <div className="flex gap-2">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            onKeyDown={(e) => e.key === 'Enter' && handleSearch((e.target as HTMLInputElement).value)}
             placeholder="Search protocols, rights, emergencies..."
             className="flex-1 h-12 px-4 rounded-xl bg-gray-900 border border-gray-800 text-white text-sm focus:outline-none focus:border-blue-500 placeholder-gray-600"
           />
           <button
-            onClick={handleSearch}
+            onClick={() => handleSearch(input)}
             className="px-4 h-12 rounded-xl bg-blue-600 text-white text-sm font-medium active:bg-blue-500"
           >
             Search

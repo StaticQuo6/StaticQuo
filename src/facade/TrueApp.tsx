@@ -57,11 +57,21 @@ export function TrueApp({ onLock }: Props) {
   }
 
   if (activeFeature === 'search') {
-    return <SearchView />
+    return (
+      <div>
+        <Header onBack={handleBack} onLock={onLock} />
+        <SearchView />
+      </div>
+    )
   }
 
   if (activeFeature === 'mesh') {
-    return <MeshDashboard />
+    return (
+      <div>
+        <Header onBack={handleBack} onLock={onLock} />
+        <MeshDashboard />
+      </div>
+    )
   }
 
   if (activeFeature === 'vault') {

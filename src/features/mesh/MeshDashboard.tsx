@@ -32,25 +32,21 @@ export function MeshDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">
-      <header className="sticky top-0 z-10 bg-gray-900/80 backdrop-blur-sm border-b border-gray-800 px-4 py-3 flex items-center justify-between">
-        <h1 className="text-lg font-bold flex items-center gap-2">
-          <span>🔗</span> Mesh Relay
-        </h1>
-        <button
-          onClick={transportActive ? handleStop : handleStart}
-          className={`text-xs px-3 py-1 rounded-lg ${
-            transportActive
-              ? 'bg-red-600 text-white active:bg-red-500'
-              : 'bg-blue-600 text-white active:bg-blue-500'
-          }`}
-        >
-          {transportActive ? 'Stop' : 'Start'}
-        </button>
-      </header>
-
-      <main className="p-4 space-y-4 max-w-lg mx-auto">
+      <main className="p-4 space-y-4 max-w-lg mx-auto pt-16">
         <div className="p-4 rounded-2xl bg-gray-900 border border-gray-800">
-          <p className="text-sm font-medium text-white mb-2">Identity</p>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm font-medium text-white">Identity</p>
+            <button
+              onClick={transportActive ? handleStop : handleStart}
+              className={`text-xs px-3 py-1 rounded-lg ${
+                transportActive
+                  ? 'bg-red-600 text-white active:bg-red-500'
+                  : 'bg-blue-600 text-white active:bg-blue-500'
+              }`}
+            >
+              {transportActive ? 'Stop' : 'Start'}
+            </button>
+          </div>
           <p className="text-xs font-mono text-gray-500">SQ:{fingerprint}</p>
           <p className="text-xs text-gray-600 mt-1">
             Relay queue: {relayQueue.length} messages
