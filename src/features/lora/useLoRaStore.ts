@@ -3,6 +3,7 @@ import { create } from 'zustand'
 type ConnectionStatus = 'disconnected' | 'scanning' | 'connecting' | 'connected' | 'error'
 
 interface LoRaDeviceInfo {
+  deviceId: string
   name: string
   serviceUuid: string
   toRadioUuid: string
@@ -27,6 +28,7 @@ interface LoRaStore {
   status: ConnectionStatus
   devices: LoRaDeviceInfo[]
   connectedDeviceId: string | null
+  connectedDeviceName: string | null
   firmware: string | null
   hardwareModel: string | null
   nodesInRange: number
@@ -34,7 +36,7 @@ interface LoRaStore {
   lastMessage: string | null
   setStatus: (status: ConnectionStatus) => void
   setDevices: (devices: LoRaDeviceInfo[]) => void
-  setConnected: (deviceId: string, firmware: string, hwModel: string) => void
+  setConnected: (deviceId: string, name: string, firmware: string, hwModel: string, svcUuid?: string, toRadio?: string, fromRadio?: string, fromNum?: string) => void
   setDisconnected: () => void
   addTelemetry: (nodeId: string, data: Partial<LoRaTelemetry>) => void
   setNodesInRange: (n: number) => void
@@ -47,6 +49,7 @@ export const useLoRaStore = create<LoRaStore>()((set) => ({
   status: 'disconnected',
   devices: [],
   connectedDeviceId: null,
+  connectedDeviceName: null,
   firmware: null,
   hardwareModel: null,
   nodesInRange: 0,
@@ -57,13 +60,14 @@ export const useLoRaStore = create<LoRaStore>()((set) => ({
 
   setDevices: (devices) => set({ devices }),
 
-  setConnected: (deviceId, firmware, hwModel) =>
-    set({ status: 'connected', connectedDeviceId: deviceId, firmware, hardwareModel: hwModel }),
+  setConnected: (deviceId, name, firmware, hwModel) =>
+    set({ status: 'connected', connectedDeviceId: deviceId, connectedDeviceName: name, firmware, hardwareModel: hwModel }),
 
   setDisconnected: () =>
     set({
       status: 'disconnected',
       connectedDeviceId: null,
+      connectedDeviceName: null,
       firmware: null,
       hardwareModel: null,
       nodesInRange: 0,

@@ -2,7 +2,7 @@ import { useLoRaStore } from './useLoRaStore'
 import { LoRaOnboarding } from './LoRaOnboarding'
 
 export function LoRaDashboard() {
-  const { status, connectedDeviceId, firmware, hardwareModel, nodesInRange, telemetry, lastMessage, setDisconnected } =
+  const { status, connectedDeviceId, connectedDeviceName, firmware, hardwareModel, nodesInRange, telemetry, lastMessage, setDisconnected } =
     useLoRaStore()
 
   if (status !== 'connected') {
@@ -36,7 +36,7 @@ export function LoRaDashboard() {
         <div className="p-4 rounded-2xl bg-gray-900 border border-gray-800">
           <p className="text-sm font-medium text-white mb-2">Device</p>
           <div className="space-y-1 text-xs text-gray-400">
-            <p>Name: {connectedDeviceId}</p>
+            <p>Name: {connectedDeviceName || connectedDeviceId}</p>
             <p>Firmware: {firmware || 'Unknown'}</p>
             <p>Hardware: {hardwareModel || 'Unknown'}</p>
             <p>Nodes in range: {nodesInRange}</p>

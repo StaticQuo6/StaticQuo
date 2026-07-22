@@ -2,6 +2,8 @@ import { useMeshStore } from './useMeshStore'
 import { RelayEngine } from './RelayEngine'
 import { getBlePeripheral } from '../../shared/ble/BlePeripheralPlugin'
 import { shardCollector } from '../../core/ShardCollector'
+import { BleClient } from '@capacitor-community/bluetooth-le'
+import { Capacitor } from '@capacitor/core'
 import type { MeshEnvelope } from './MeshEnvelope'
 
 export class MeshBLETransport {
@@ -67,6 +69,23 @@ export class MeshBLETransport {
         store.removePeer(id)
       }
     })
+
+    if (Capacitor.isNativePlatform()) {
+      try {
+        await BleClient.requestLEScan(
+          { services: [], scanMode: 0, allowDuplicates: false },
+          (result) => {
+            const id = result.device.deviceId
+            const name = result.localName || result.device.name || `Peer_${id.slice(0, 8)}`
+            const rssi = result.rssi ?? -100
+            store.addPeer(id, name, rssi)
+          }
+        )
+        setTimeout(() => BleClient.stopLEScan(), 3000)
+      } catch {
+        // BLE scan unavailable — maintain existing peers
+      }
+    }
 
     const relayMsg = this.engine.getNextForRelay()
     if (relayMsg) {

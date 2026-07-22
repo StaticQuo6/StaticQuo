@@ -1,63 +1,69 @@
-import { useLoRaStore, type LoRaDeviceInfo } from './useLoRaStore'
-import {
-  getMeshtasticServiceUuid,
-} from './MeshtasticBLE'
-
-declare global {
-  interface Window {
-    BluetoothLe?: {
-      requestLEScan(options: { services: string[] }): Promise<void>
-      stopLEScan(): Promise<void>
-      connect(options: { deviceId: string }): Promise<void>
-      disconnect(options: { deviceId: string }): Promise<void>
-      discoverServices(options: { deviceId: string }): Promise<{ services: { uuid: string }[] }>
-    }
-  }
-}
+import { useRef } from 'react'
+import { useLoRaStore, type LoRaDeviceInfo, type ConnectionStatus } from './useLoRaStore'
+import { getMeshtasticServiceUuid, MESH_SERVICE_UUID } from './MeshtasticBLE'
+import { BleClient } from '@capacitor-community/bluetooth-le'
 
 export function LoRaOnboarding() {
-  const { status, devices, setStatus, setDevices } = useLoRaStore()
+  const { status, devices, setStatus, setDevices, setConnected } = useLoRaStore()
+  const scanTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const handleScan = async () => {
     setStatus('scanning')
-
-    const scanned: LoRaDeviceInfo[] = []
+    const found: LoRaDeviceInfo[] = []
 
     try {
-      // Simulated BLE scan for Meshtastic UUID
-      scanned.push({
-        name: 'Meshtastic_ab3f',
-        serviceUuid: getMeshtasticServiceUuid(),
-        toRadioUuid: '',
-        fromRadioUuid: '',
-        fromNumUuid: '',
-      })
-      scanned.push({
-        name: 'Meshtastic_7c12',
-        serviceUuid: getMeshtasticServiceUuid(),
-        toRadioUuid: '',
-        fromRadioUuid: '',
-        fromNumUuid: '',
-      })
-    } catch {
-      // scan failed
-    }
+      await BleClient.requestLEScan(
+        { services: [MESH_SERVICE_UUID], scanMode: 1 },
+        (result) => {
+          const name = result.localName || result.device.name || 'Unknown'
+          const existing = found.find((d) => d.deviceId === result.device.deviceId)
+          if (!existing) {
+            found.push({
+              deviceId: result.device.deviceId,
+              name,
+              serviceUuid: getMeshtasticServiceUuid(),
+              toRadioUuid: '',
+              fromRadioUuid: '',
+              fromNumUuid: '',
+            })
+            setDevices([...found])
+          }
+        }
+      )
 
-    setDevices(scanned)
-    if (scanned.length === 0) setStatus('disconnected')
+      scanTimer.current = setTimeout(async () => {
+        await BleClient.stopLEScan()
+        setDevices(found)
+        setStatus(found.length > 0 ? 'disconnected' : 'disconnected')
+      }, 5000)
+    } catch {
+      setDevices(found)
+      setStatus('disconnected')
+    }
   }
 
   const handleConnect = async (device: LoRaDeviceInfo) => {
     setStatus('connecting')
 
     try {
-      if (window.BluetoothLe) {
-        await window.BluetoothLe.connect({ deviceId: device.name })
-      }
+      await BleClient.connect(device.deviceId, () => {
+        useLoRaStore.getState().setStatus('disconnected')
+      })
 
-      const store = useLoRaStore.getState()
-      store.setConnected(device.name, '2.5.0', 'Heltec V3')
-      store.setStatus('connected')
+      const services = await BleClient.getServices(device.deviceId)
+      const meshSvc = services.find((s) => s.uuid.toLowerCase() === MESH_SERVICE_UUID.toLowerCase())
+
+      setConnected(
+        device.deviceId,
+        device.name,
+        '2.5.0',
+        'Heltec V3',
+        meshSvc?.uuid || '',
+        meshSvc?.characteristics.find((c) => c.properties.write)?.uuid || '',
+        meshSvc?.characteristics.find((c) => c.properties.notify)?.uuid || '',
+        meshSvc?.characteristics.find((c) => c.properties.read)?.uuid || '',
+      )
+      setStatus('connected')
     } catch {
       setStatus('error')
       setTimeout(() => setStatus('disconnected'), 3000)
@@ -90,7 +96,7 @@ export function LoRaOnboarding() {
           <div className="text-center">
             <p className="text-blue-400 text-sm animate-pulse">Scanning...</p>
             {devices.map((d) => (
-              <div key={d.name} className="mt-4">
+              <div key={d.deviceId} className="mt-4">
                 <button
                   onClick={() => handleConnect(d)}
                   className="w-full h-12 rounded-xl bg-gray-800 text-white text-sm font-medium active:bg-gray-700 transition-colors"
