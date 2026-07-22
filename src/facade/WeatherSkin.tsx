@@ -7,6 +7,8 @@ interface Props {
 export function WeatherSkin({ onSecretInput }: Props) {
   const [tapCount, setTapCount] = useState(0)
   const [tapTimer, setTapTimer] = useState<ReturnType<typeof setTimeout> | null>(null)
+  const [showPinModal, setShowPinModal] = useState(false)
+  const [pinInput, setPinInput] = useState('')
 
   useEffect(() => {
     return () => {
@@ -22,13 +24,33 @@ export function WeatherSkin({ onSecretInput }: Props) {
 
     if (next >= 5) {
       setTapCount(0)
-      const pin = prompt('Enter access code:')
-      if (pin) onSecretInput(pin)
+      setPinInput('')
+      setShowPinModal(true)
       return
     }
 
     const timer = setTimeout(() => setTapCount(0), 2000)
     setTapTimer(timer)
+  }
+
+  const handlePinDigit = (d: string) => {
+    if (pinInput.length < 8) setPinInput((p) => p + d)
+  }
+
+  const handlePinBackspace = () => {
+    setPinInput((p) => p.slice(0, -1))
+  }
+
+  const handlePinSubmit = () => {
+    if (pinInput.length >= 4) {
+      setShowPinModal(false)
+      onSecretInput(pinInput)
+    }
+  }
+
+  const handlePinCancel = () => {
+    setShowPinModal(false)
+    setPinInput('')
   }
 
   const now = new Date()
@@ -83,6 +105,66 @@ export function WeatherSkin({ onSecretInput }: Props) {
           </div>
         ))}
       </div>
+
+      {showPinModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-6">
+          <div className="w-full max-w-xs bg-gray-900 rounded-3xl p-6 border border-gray-700">
+            <p className="text-center text-sm text-gray-400 mb-4">Enter access code</p>
+
+            <div className="flex justify-center gap-2 mb-6">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div
+                  key={i}
+                  className={`w-3 h-3 rounded-full transition-colors ${
+                    i < pinInput.length ? 'bg-blue-500' : 'bg-gray-700'
+                  }`}
+                />
+              ))}
+            </div>
+
+            <div className="grid grid-cols-3 gap-3 mb-4">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
+                <button
+                  key={n}
+                  onClick={() => handlePinDigit(String(n))}
+                  className="h-14 rounded-2xl bg-gray-800 text-white text-lg font-medium active:bg-gray-700 transition-colors"
+                >
+                  {n}
+                </button>
+              ))}
+              <div />
+              <button
+                onClick={() => handlePinDigit('0')}
+                className="h-14 rounded-2xl bg-gray-800 text-white text-lg font-medium active:bg-gray-700 transition-colors"
+              >
+                0
+              </button>
+              <button
+                onClick={handlePinBackspace}
+                className="h-14 rounded-2xl bg-gray-800 text-gray-400 active:bg-gray-700 transition-colors"
+              >
+                ⌫
+              </button>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={handlePinCancel}
+                className="flex-1 h-11 rounded-xl bg-gray-800 text-gray-400 text-sm font-medium active:bg-gray-700 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handlePinSubmit}
+                disabled={pinInput.length < 4}
+                className="flex-1 h-11 rounded-xl bg-blue-600 text-white text-sm font-medium disabled:opacity-30 active:bg-blue-500 transition-colors"
+              >
+                Enter
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

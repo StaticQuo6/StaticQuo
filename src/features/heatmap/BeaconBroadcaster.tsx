@@ -1,9 +1,5 @@
 import { getBlePeripheral } from '../../shared/ble/BlePeripheralPlugin'
 
-export function HeatmapBeacon() {
-  // Beacon logic uses getBlePeripheral()
-}
-
 export function broadcastBeacon(localName: string): Promise<void> {
   const ble = getBlePeripheral()
   if (!ble) return Promise.resolve()
