@@ -23,14 +23,14 @@ import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
-import com.getcapacitor.annotation.PermissionCallback;
+import com.getcapacitor.annotation.Permission;
 
 import java.util.UUID;
 
 @CapacitorPlugin(
     name = "BlePeripherals",
     permissions = {
-        @PermissionCallback(strings = {
+        @Permission(strings = {
             "android.permission.BLUETOOTH_ADVERTISE",
             "android.permission.BLUETOOTH_CONNECT"
         })
@@ -189,7 +189,8 @@ public class BlePeripheralsPlugin extends Plugin {
         int requestId = call.getInt("requestId", 0);
         int status = call.getInt("status", BluetoothGatt.GATT_SUCCESS);
         int offset = call.getInt("offset", 0);
-        byte[] value = call.getArray("value", byte[].class);
+        String valueStr = call.getString("value");
+        byte[] value = valueStr != null ? android.util.Base64.decode(valueStr, android.util.Base64.NO_WRAP) : null;
 
         if (deviceId == null || value == null) {
             call.reject("deviceId and value are required");
@@ -209,7 +210,8 @@ public class BlePeripheralsPlugin extends Plugin {
         }
 
         String deviceId = call.getString("deviceId");
-        byte[] value = call.getArray("value", byte[].class);
+        String valueStr = call.getString("value");
+        byte[] value = valueStr != null ? android.util.Base64.decode(valueStr, android.util.Base64.NO_WRAP) : null;
 
         if (deviceId == null || value == null) {
             call.reject("deviceId and value are required");
