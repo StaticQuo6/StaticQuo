@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { useHeatmapStore, type SupplyCategory, type SupplyLevel } from './useHeatmapStore'
 import { SupplyToggle } from './SupplyToggle'
+import { broadcastBeacon, stopBeacon } from './BeaconBroadcaster'
 
 const levelColors: Record<SupplyLevel, string> = {
   critical: 'bg-red-600 border-red-400',
@@ -17,15 +19,47 @@ const icons: Record<SupplyCategory, string> = {
 }
 
 export function HeatmapView() {
-  const { nodes, selectedCategory } = useHeatmapStore()
+  const { nodes, selectedCategory, beaconActive, toggleBeacon } = useHeatmapStore()
+  const [beaconErr, setBeaconErr] = useState(false)
+
+  const handleToggleBeacon = async () => {
+    if (beaconActive) {
+      await stopBeacon()
+      toggleBeacon()
+      return
+    }
+    try {
+      await broadcastBeacon('SQ-Beacon')
+      toggleBeacon()
+      setBeaconErr(false)
+    } catch {
+      setBeaconErr(true)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">
-      <header className="sticky top-0 z-10 bg-gray-900/80 backdrop-blur-sm border-b border-gray-800 px-4 py-3">
+      <header className="sticky top-0 z-10 bg-gray-900/80 backdrop-blur-sm border-b border-gray-800 px-4 py-3 flex items-center justify-between">
         <h1 className="text-lg font-bold flex items-center gap-2">
           <span>📍</span> Needs Heatmap
         </h1>
+        <button
+          onClick={handleToggleBeacon}
+          className={`flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg transition-colors ${
+            beaconActive
+              ? 'bg-green-600 text-white active:bg-green-500'
+              : 'bg-gray-800 text-gray-400 active:bg-gray-700'
+          }`}
+        >
+          <span className={`w-2 h-2 rounded-full ${beaconActive ? 'bg-green-300 animate-pulse' : 'bg-gray-600'}`} />
+          {beaconActive ? 'Beacon ON' : 'Beacon OFF'}
+        </button>
       </header>
+      {beaconErr && (
+        <div className="px-4 pt-2">
+          <p className="text-xs text-red-400">Beacon unavailable on this device</p>
+        </div>
+      )}
 
       <SupplyToggle />
 
