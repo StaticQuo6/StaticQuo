@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">StaticQuo</string>
+    <string name="title_activity_main">StaticQuo</string>
+    <string name="package_name">com.staticquo.app</string>
+    <string name="custom_url_scheme">com.staticquo.app</string>
+</resources>
