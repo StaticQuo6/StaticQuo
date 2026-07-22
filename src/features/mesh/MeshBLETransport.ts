@@ -1,6 +1,8 @@
 import { useMeshStore } from './useMeshStore'
 import { RelayEngine } from './RelayEngine'
 import { getBlePeripheral } from '../../shared/ble/BlePeripheralPlugin'
+import { shardCollector } from '../../core/ShardCollector'
+import type { MeshEnvelope } from './MeshEnvelope'
 
 export class MeshBLETransport {
   private engine: RelayEngine
@@ -44,6 +46,14 @@ export class MeshBLETransport {
     }
 
     this.engine.stop()
+  }
+
+  receiveEnvelope(envelope: MeshEnvelope): 'accepted' | 'duplicate' | 'expired' {
+    const result = this.engine.receiveEnvelope(envelope)
+    if (result === 'accepted') {
+      shardCollector.ingest(envelope.payload)
+    }
+    return result
   }
 
   private async scanForPeers(): Promise<void> {
