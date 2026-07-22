@@ -2,7 +2,7 @@
   "name": "StaticQuo",
   "short_name": "StaticQuo",
   "description": "Offline-first protest logistics & safety PWA",
-  "start_url": "/",
+  "start_url": ".",
   "display": "standalone",
   "background_color": "#030712",
   "theme_color": "#030712",
