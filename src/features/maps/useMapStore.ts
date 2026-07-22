@@ -17,8 +17,6 @@ interface MapStore {
   setAvailableRegions: (regions: MapRegion[]) => void
 }
 
-export type { MapRegion }
-
 export const useMapStore = create<MapStore>()((set) => ({
   currentRegion: null,
   tileStatus: 'none',

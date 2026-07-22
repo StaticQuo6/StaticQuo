@@ -15,8 +15,6 @@ interface SearchStore {
   setIndexReady: (ready: boolean) => void
 }
 
-export type { SearchResult }
-
 export const useSearchStore = create<SearchStore>()((set) => ({
   query: '',
   results: [],

@@ -41,7 +41,7 @@ export function encodeMeshPacket(payload: Uint8Array, dest: number): ArrayBuffer
   return frame.buffer
 }
 
-export const PortNum = {
+const PortNum = {
   TEXT_MESSAGE_APP: 1,
   TELEMETRY_APP: 2,
   POSITION_APP: 3,

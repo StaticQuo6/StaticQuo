@@ -64,4 +64,4 @@ export class MbtilesTileSource {
   }
 }
 
-export const mbtilesSource = new MbtilesTileSource()
+
