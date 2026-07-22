@@ -1,5 +1,5 @@
 import { useRef } from 'react'
-import { useLoRaStore, type LoRaDeviceInfo, type ConnectionStatus } from './useLoRaStore'
+import { useLoRaStore, type LoRaDeviceInfo } from './useLoRaStore'
 import { getMeshtasticServiceUuid, MESH_SERVICE_UUID } from './MeshtasticBLE'
 import { BleClient } from '@capacitor-community/bluetooth-le'
 

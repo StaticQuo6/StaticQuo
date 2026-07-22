@@ -24,18 +24,16 @@ export function TileDownloader() {
     const url = TILE_URLS[name]
     if (!url) {
       setError(`No tile source for ${name}`)
-      setTileStatus('idle')
+      setTileStatus('error')
       return
     }
 
     try {
       if (Capacitor.isNativePlatform()) {
-        let lastBytes = 0
         Filesystem.addListener('progress', (event) => {
           if (event.url === url) {
             const pct = Math.round((event.bytes / event.contentLength) * 100)
             setDownloadProgress(Math.min(pct, 100))
-            lastBytes = event.bytes
           }
         })
 
@@ -69,7 +67,7 @@ export function TileDownloader() {
       setTileStatus('ready')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Download failed')
-      setTileStatus('idle')
+      setTileStatus('error')
     }
   }
 

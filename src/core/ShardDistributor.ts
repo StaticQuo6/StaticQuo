@@ -5,7 +5,6 @@ import { decrypt, encrypt } from '../shared/crypto/CryptoService'
 import { relayEngine } from '../features/mesh/RelayEngine'
 import { createEnvelope } from '../features/mesh/MeshEnvelope'
 import { getOrCreateIdentity } from '../features/mesh/MeshIdentity'
-import { useMeshStore } from '../features/mesh/useMeshStore'
 import { SHARD_TOTAL, SHARD_THRESHOLD, encodeShardPayload, type ShardPayload } from '../shared/shard/ShardProtocol'
 
 export async function distributeShards(recordId: string): Promise<void> {

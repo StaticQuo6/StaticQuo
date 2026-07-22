@@ -41,14 +41,6 @@ export function encodeMeshPacket(payload: Uint8Array, dest: number): ArrayBuffer
   return frame.buffer
 }
 
-const PortNum = {
-  TEXT_MESSAGE_APP: 1,
-  TELEMETRY_APP: 2,
-  POSITION_APP: 3,
-  NODEINFO_APP: 4,
-  REPLY_APP: 32,
-} as const
-
 export function parseFromRadioPacket(bytes: Uint8Array): {
   type: string
   data: Record<string, unknown>
